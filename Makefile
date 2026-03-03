@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -Wshadow -Werror -std=c17 -Wconversion -pedantic -MMD -MP -Isrc -Iinclude
+CFLAGS := -Wall -Wextra -Wshadow -Werror -std=c23 -Wconversion -pedantic -MMD -MP -Isrc -Iinclude
 LDFLAGS =
 TARGET := build/httpserver
 
