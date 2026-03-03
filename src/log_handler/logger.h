@@ -11,10 +11,13 @@ typedef enum {
     LOG_FATAL
 } log_level_types;
 
+// static function to set the log level
 void log_set_level(log_level_types level);
 
+// logs passed format string to stdout or stderr based on log level
 void log_internal(log_level_types level, const char *file, size_t line, const char* fmt, ...);
 
+// Macros to handle passing log levels to internal logging function
 #define LOG_TRACE(fmt, ...) \
     log_internal(LOG_TRACE, __FILE__, __LINE__, fmt __VA_OPT__(,) __VA_ARGS__)
 
