@@ -26,14 +26,14 @@ int initialise_socket(int port){
     base.ai_socktype = SOCK_STREAM;
     base.ai_flags = AI_PASSIVE;
 
-    LOG_INFO("Fetching addr info");
+    LOG_DEBUG("Fetching addr info");
     if((rv = getaddrinfo(NULL, port_string, &base, &servinfo)) != 0){
         LOG_FATAL("getaddrinfo error: %s", gai_strerror(rv));
         return -1;
     }
     
     for(p = servinfo; p!=NULL; p=p->ai_next){
-        LOG_INFO("Attempting to for a socket connection");
+        LOG_DEBUG("Attempting to for a socket connection");
         if((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1){
             LOG_ERROR("server socket error: %s", strerror(errno));
             continue;
@@ -45,7 +45,7 @@ int initialise_socket(int port){
             return -1;
         }
 
-        LOG_INFO("Attempting to bind socket");
+        LOG_DEBUG("Attempting to bind socket");
         if(bind(sockfd, p->ai_addr, p->ai_addrlen) == -1){
             close(sockfd);
             LOG_ERROR("server bind error: %s", strerror(errno));
@@ -81,6 +81,13 @@ void* get_in_addr(struct sockaddr *sa){
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
+u_int16_t get_in_port(struct sockaddr *sa){
+    if(sa->sa_family == AF_INET){
+        return (((struct sockaddr_in *)sa)->sin_port);
+    }
+    return (((struct sockaddr_in6 *)sa)->sin6_port);
+}
+
 int accept_connection(int sockfd){
     int client_sock_fd;
     struct sockaddr_storage client_addr;
@@ -95,4 +102,55 @@ int accept_connection(int sockfd){
     inet_ntop(client_addr.ss_family, get_in_addr((struct sockaddr *) &client_addr), ipstr, sizeof ipstr);
     LOG_INFO("server: received connection from: %s", ipstr);
     return client_sock_fd;
+}
+
+int get_peer_by_sockfd(int sockfd, char* ipstr, char* portstr){
+    struct sockaddr_storage client_addr;
+    socklen_t sin_size = sizeof client_addr;
+    if(getpeername(sockfd, (struct sockaddr *) &client_addr, &sin_size) == 0){
+        ipstr = malloc(INET6_ADDRSTRLEN);
+        if(ipstr == NULL){
+            LOG_ERROR("Failed to allocate memory to store ip in string");
+            return -1;
+        }
+        portstr = malloc(PORTSTRLEN);
+        if(portstr == NULL){
+            LOG_ERROR("Failed to allocate memory to store port in string");
+            return -1;
+        }
+        inet_ntop(client_addr.ss_family, get_in_addr((struct sockaddr *) &client_addr), ipstr, sizeof(*ipstr));
+        int port = ntohs(get_in_port((struct sockaddr *) &client_addr));
+        snprintf(portstr, sizeof(*portstr), "%d", port);
+        return 0;
+    }
+    return -1;
+}
+
+int response(int sockfd, const void* msg, size_t len, int flags){
+    char *buf = (char *)msg;
+    size_t remaining_len = len;
+    while(remaining_len > 0){
+        size_t sent = send(sockfd, buf, remaining_len, flags);
+        if(sent == -1){
+            if(errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            char *ip, *port;
+            if(get_peer_by_sockfd(sockfd, ip, port) == -1){
+                LOG_ERROR("Failed to fetch socket's ip and port");
+                LOG_ERROR("send error: %s", strerror(errno));
+                if(ip != NULL) free(ip);
+                if(port != NULL) free(port);
+                return -1;
+            }
+            LOG_ERROR("Error while sending to %s:%s", ip, port);
+            LOG_ERROR("send error: %s", strerror(errno));
+            return -1;
+        }
+        if(sent == 0){
+            LOG_WARN("Connection close by peer\n Remaining bytes to send: %zu", remaining_len);
+            return 0;
+        }
+        buf += sent;
+        remaining_len -= sent;
+    }
+    return 0;
 }
