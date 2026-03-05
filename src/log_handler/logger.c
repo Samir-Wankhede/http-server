@@ -32,7 +32,7 @@ void log_internal(log_level_types level, const char *file, size_t line, const ch
     
     FILE *out = (level >= LOG_ERROR) ? stderr : stdout;
 
-    fprintf(out, "[%s] [%s: %zu] [%s] ", timestamp, file, line, levels[current_level]);
+    fprintf(out, "[%s] [%s] %s:(%zu): ", timestamp, levels[current_level], file, line);
     va_list args;
     va_start(args, fmt);
     vfprintf(out, fmt, args);
