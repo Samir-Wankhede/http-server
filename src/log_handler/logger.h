@@ -11,6 +11,7 @@ typedef enum {
     LOG_FATAL
 } log_level_types;
 
+extern const char* levels[];
 // static function to set the log level
 void log_set_level(log_level_types level);
 
