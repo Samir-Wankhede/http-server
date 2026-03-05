@@ -153,3 +153,7 @@ int send_response(int sockfd, const void* msg, size_t len, int flags){
     }
     return 0;
 }
+
+// int receive_request(int sockfd, void* buf, size_t len, int flags){
+
+//}

@@ -30,6 +30,6 @@ int get_peer_by_sockfd(int sockfd, char* ipstr, size_t ipstr_len, char* portstr,
 int send_response(int sockfd, const void* msg, size_t len, int flags);
 
 // reveives message from client
-int receive_request(int sockfd, void* buf, int len, int flags);
+int receive_request(int sockfd, void* buf, size_t len, int flags);
 
 #endif
