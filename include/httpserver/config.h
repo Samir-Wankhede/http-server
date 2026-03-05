@@ -1,6 +1,10 @@
 #ifndef HTTPSERVER_CONFIG_H
 #define HTTPSERVER_CONFIG_H
 
+#ifndef SERVER_ROOT
+#define SERVER_ROOT "./http-server-static"
+#endif
+
 #ifndef DEFAULT_PORT
 #define DEFAULT_PORT 8080
 #endif
