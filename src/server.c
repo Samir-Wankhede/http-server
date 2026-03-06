@@ -2,6 +2,7 @@
 #include "log_handler/logger.h"
 #include "socket_handler/socket.h"
 #include "request_handlers/dispatcher.h"
+#include "signal_handler/sig_handler.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -17,7 +18,13 @@ int main(void){
             break;
         }
     }
-    
+
+    // set termination signal handlers   
+    if(setup_signal_handlers() == -1){
+        LOG_ERROR("Could not setup termination handlers");
+        exit(EXIT_FAILURE);
+    }
+
     int sockfd;
     if((sockfd = initialise_socket(DEFAULT_PORT)) == -1){
         exit(EXIT_FAILURE);
@@ -26,7 +33,8 @@ int main(void){
     if((listening_status = start_listening(sockfd, BACKLOG, DEFAULT_PORT)) == -1){
         exit(EXIT_FAILURE);
     } 
-    while(1){
+serverLoop:
+    while(!stop_server){
         char ipstr[INET6_ADDRSTRLEN];
         int client_sock_fd = accept_connection(sockfd, ipstr, sizeof(ipstr));
         if(client_sock_fd == -1){
@@ -38,7 +46,7 @@ int main(void){
         char port[PORTSTRLEN];
         if(pthread_create(&thread, NULL, dispatch_request, (void *)(intptr_t)client_sock_fd) == 0){
             if(get_peer_by_sockfd(client_sock_fd, ip, sizeof(ip), port, sizeof(port)) == 0)
-                LOG_DEBUG("Thread: %lu is handling client: %s:%s", thread, ip, port);
+                LOG_DEBUG("Thread: %lu is handling client: %s:%s", (unsigned long)thread, ip, port);
             pthread_detach(thread);
         }
         else{
@@ -46,6 +54,18 @@ int main(void){
             close(client_sock_fd);
         }
     }
+
+    char choice = '\0';
+    LOG_WARN("Do you want to stop server? (Y/n)");
+    scanf(" %c", &choice);
+    if(choice=='y'||choice=='Y'){
+        LOG_INFO("Shutting down server!");
+        LOG_INFO("Goodbye!");
+    }else{
+        LOG_INFO("Server continuing operation!");
+        stop_server = 0;
+        goto serverLoop;
+    } 
     close(sockfd);
     return 0;
 }
