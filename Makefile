@@ -23,9 +23,5 @@ build/%.o: src/%.c
 run: all
 	./$(TARGET)
 
-PORT ?= 8080
-run-port: all
-	./$(TARGET) -DDEFAULT_PORT=$(PORT)
-
 clean:
 		rm -rf build
